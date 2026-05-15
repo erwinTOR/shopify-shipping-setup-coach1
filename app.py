@@ -15,11 +15,9 @@ if "zone_mode" not in st.session_state:
 if "zone_preset" not in st.session_state:
     st.session_state.zone_preset = "Domestic Hero"
 if "custom_zones" not in st.session_state:
-    # list of dicts: {"name": ..., "query": ...}
-    st.session_state.custom_zones = []
+    st.session_state.custom_zones = []  # list of dicts: {"name": ..., "query": ...}
 if "flat_size_category" not in st.session_state:
-    # Small / Medium / Large
-    st.session_state.flat_size_category = "Small"
+    st.session_state.flat_size_category = "Small"  # Small / Medium / Large
 
 # ----- TABS -----
 tab_zones, tab_rates, tab_packaging, tab_special, tab_done = st.tabs(
@@ -104,7 +102,6 @@ with tab_zones:
         st.markdown("### Live feedback")
         st.caption("Updates as you configure zones.")
 
-        # Simple fake numbers, just for demo
         if st.session_state.zone_mode == "Use Smart Presets":
             if st.session_state.zone_preset == "Domestic Hero":
                 reach = "1 country"
@@ -180,9 +177,30 @@ with tab_rates:
 
         if view == "By transit time":
             st.markdown("#### By transit time")
+            col_a, col_b, col_c = st.columns(3)
+            with col_a:
+                express = st.number_input("Express (1–2 days)", min_value=0.0, value=20.0)
+            with col_b:
+                economy = st.number_input("Economy (5–7 days)", min_value=0.0, value=10.0)
+            with col_c:
+                value = st.number_input("Value (7–14 days)", min_value=0.0, value=6.0)
 
-            # Visual size picker
-            st.markdown("##### Visual size picker")
+        elif view == "By price":
+            st.markdown("#### By cart price")
+            threshold = st.number_input("If cart price is over…", min_value=0.0, value=75.0)
+            charge = st.number_input("…then charge this shipping price", min_value=0.0, value=0.0)
+            st.caption("Example: Free shipping over $75, flat rate below that.")
+
+        else:
+            st.markdown("#### By weight")
+            weight_limit = st.number_input("If total weight (kg) is over…", min_value=0.0, value=5.0)
+            charge_weight = st.number_input("…then charge this shipping price", min_value=0.0, value=25.0)
+
+        # Visual size picker (for all flat-rate views), tucked into an expander at the bottom
+        with st.expander("Visual size picker (optional)"):
+            st.caption(
+                "If you don't have exact dimensions, choose a rough size to guide your pricing."
+            )
             c_small, c_med, c_large = st.columns(3)
 
             with c_small:
@@ -204,7 +222,6 @@ with tab_rates:
                 f"Currently selected size: **{st.session_state.flat_size_category}**"
             )
 
-            # Recommendation text based on selected size
             if st.session_state.flat_size_category == "Small":
                 st.info(
                     "Recommendation: Similar merchants often choose compact boxes (e.g., 12 x 9 x 2 in) "
@@ -221,26 +238,6 @@ with tab_rates:
                     "and higher flat rates to avoid losing money on freight‑like shipments."
                 )
 
-            st.markdown("##### Set flat rates by speed")
-            col_a, col_b, col_c = st.columns(3)
-            with col_a:
-                express = st.number_input("Express (1–2 days)", min_value=0.0, value=20.0)
-            with col_b:
-                economy = st.number_input("Economy (5–7 days)", min_value=0.0, value=10.0)
-            with col_c:
-                value = st.number_input("Value (7–14 days)", min_value=0.0, value=6.0)
-
-        elif view == "By price":
-            st.markdown("#### By cart price")
-            threshold = st.number_input("If cart price is over…", min_value=0.0, value=75.0)
-            charge = st.number_input("…then charge this shipping price", min_value=0.0, value=0.0)
-            st.caption("Example: Free shipping over $75, flat rate below that.")
-
-        else:
-            st.markdown("#### By weight")
-            weight_limit = st.number_input("If total weight (kg) is over…", min_value=0.0, value=5.0)
-            charge_weight = st.number_input("…then charge this shipping price", min_value=0.0, value=25.0)
-
         st.caption("With Flat rate, Packaging & Dimensions becomes optional for a simple setup.")
 
     else:
@@ -256,7 +253,6 @@ with tab_rates:
 with tab_packaging:
     st.subheader("Packaging & Dimensions")
 
-    # Only show the full packaging setup if Carrier‑calculated is chosen
     if st.session_state.rate_strategy != "Carrier‑calculated":
         st.info("This step is only for Carrier-calculated rates.")
     else:
@@ -271,7 +267,6 @@ with tab_packaging:
         if mode == "Carrier packaging":
             st.markdown("#### Carrier packaging")
 
-            # Extended list of mock carrier boxes
             box_options = [
                 "UPS – Small Box (12 x 9 x 2 in)",
                 "UPS – Medium Box (16 x 12 x 3 in)",
@@ -290,11 +285,9 @@ with tab_packaging:
 
             st.markdown(f"**Box preview:** {option}")
 
-            # Highlight a subtle recommendation based on the option text
             if "Recommended for your product" in option:
                 st.markdown("*:green[Recommended for your product]*")
 
-            # Parse dimensions from option for display
             dims_match = re.search(r"\(([\dx\s]+in)\)", option)
             dims_text = dims_match.group(1) if dims_match else "N/A"
 
@@ -305,7 +298,6 @@ with tab_packaging:
                 L, W, H = "L", "W", "H"
 
             st.markdown("##### Box dimensions guidance")
-            # If you add a real image file named 'box_dimensions.png' in the repo, uncomment the next line:
             # st.image("box_dimensions.png", caption="Example box showing length, width, and height.")
             st.markdown(
                 f"""
