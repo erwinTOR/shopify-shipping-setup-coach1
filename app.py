@@ -1,4 +1,5 @@
 import streamlit as st
+import re
 
 st.set_page_config(page_title="Take Home Assignment - APM", layout="wide")
 st.title("Take Home Assignment - APM")
@@ -42,17 +43,20 @@ with tab_zones:
             with c1:
                 st.markdown("**Domestic Hero**")
                 st.caption("Ship only within your main country.")
-                st.badge("Profit grade: A")
+                st.markdown("Profit grade: **A**")
+                st.caption("Good for low‑risk, domestic‑only shipping with simple setup.")
 
             with c2:
                 st.markdown("**North American Expansion**")
                 st.caption("US + Canada with sensible defaults.")
-                st.badge("Profit grade: B")
+                st.markdown("Profit grade: **B**")
+                st.caption("Balances reach with margin across US and Canada.")
 
             with c3:
                 st.markdown("**Global Explorer**")
                 st.caption("Sell worldwide with protective margins.")
-                st.badge("Profit grade: B−")
+                st.markdown("Profit grade: **B−**")
+                st.caption("Maximizes reach but requires careful rate tuning.")
 
             preset = st.selectbox(
                 "Select a preset to preview",
@@ -84,20 +88,14 @@ with tab_zones:
         if st.session_state.zone_mode == "Use Smart Presets":
             if st.session_state.zone_preset == "Domestic Hero":
                 reach = "1 country"
-                aov = "$55"
             elif st.session_state.zone_preset == "North American Expansion":
                 reach = "2 countries"
-                aov = "$65"
             else:
                 reach = "40+ countries"
-                aov = "$70"
         else:
             reach = "Custom"
-            aov = "$60"
 
         st.metric("Potential reach", reach)
-        st.metric("Avg. order value", aov)
-        st.metric("Net profit estimate", "Healthy")
 
     st.divider()
     st.button("Save & continue to Rates", type="primary", key="zones_continue")
@@ -162,10 +160,7 @@ with tab_packaging:
 
     # Only show the full packaging setup if Carrier‑calculated is chosen
     if st.session_state.rate_strategy != "Carrier‑calculated":
-        st.info(
-            "For simple flat-rate setups, detailed packaging is optional. "
-            "This step becomes more important once you use carrier‑calculated rates."
-        )
+        st.info("This step is only for Carrier-calculated rates.")
     else:
         st.caption("Required when using carrier‑calculated rates to avoid surprises at checkout.")
 
@@ -183,7 +178,7 @@ with tab_packaging:
                 "UPS – Small Box (12 x 9 x 2 in)",
                 "UPS – Medium Box (16 x 12 x 3 in)",
                 "UPS – Large Box (18 x 18 x 8 in)",
-                "FedEx – Pak (13 x 11 x 2 in) – Recommended for your product",
+                "FedEx – Pak (13 x 11 x 2 in) [Recommended for your product]",
                 "FedEx – Large Box (17 x 13 x 3 in)",
                 "FedEx – Tube (38 x 6 x 6 in)",
                 "USPS – Flat Rate Box (Medium, 14 x 12 x 3 in)",
@@ -199,26 +194,28 @@ with tab_packaging:
 
             # Highlight a subtle recommendation based on the option text
             if "Recommended for your product" in option:
-                st.success("Recommended for your product")
+                st.markdown("*:green[Recommended for your product]*")
 
-            # Very simple parse of dimensions from the string (for display only)
-            import re
-
+            # Parse dimensions from option for display
             dims_match = re.search(r"\(([\dx\s]+in)\)", option)
             dims_text = dims_match.group(1) if dims_match else "N/A"
 
-            st.markdown("##### 3D‑style box illustration (mock)")
-            st.text(
-                "        +-----------+\n"
-                "       /           /|\n"
-                "      /           / |\n"
-                "     +-----------+  |\n"
-                "     |           |  |\n"
-                "     |           |  +\n"
-                "     |           | /\n"
-                "     +-----------+/\n"
+            # Try to extract numeric L x W x H for labels
+            dims_numbers = re.findall(r"(\d+)", dims_text)
+            if len(dims_numbers) >= 3:
+                L, W, H = dims_numbers[0], dims_numbers[1], dims_numbers[2]
+            else:
+                L, W, H = "L", "W", "H"
+
+            st.markdown("##### Box dimensions schematic (mock)")
+            st.markdown(
+                f"""
+                - Length: **{L} in**  
+                - Width: **{W} in**  
+                - Height: **{H} in**  
+                """
             )
-            st.caption(f"Dimensions: {dims_text} (length × width × height, not to scale).")
+            st.caption("In a full build, this schematic would be a 3D visual preview tied to these dimensions.")
 
         else:
             st.markdown("#### Custom / oversized packaging")
@@ -294,7 +291,6 @@ with tab_done:
         mock_city = st.text_input("Mock city", placeholder="e.g., Toronto, New York, London")
 
         # Very simple mock logic: if city name looks like "domestic" vs "international"
-        # In your demo you can say: this would actually use the zones from Tab 1.
         city_lower = mock_city.lower()
         if city_lower.strip() == "":
             shipping = 10.0 if st.session_state.rate_strategy == "Flat rate" else 12.34
