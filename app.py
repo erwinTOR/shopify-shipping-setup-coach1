@@ -17,6 +17,9 @@ if "zone_preset" not in st.session_state:
 if "custom_zones" not in st.session_state:
     # list of dicts: {"name": ..., "query": ...}
     st.session_state.custom_zones = []
+if "flat_size_category" not in st.session_state:
+    # Small / Medium / Large
+    st.session_state.flat_size_category = "Small"
 
 # ----- TABS -----
 tab_zones, tab_rates, tab_packaging, tab_special, tab_done = st.tabs(
@@ -110,7 +113,6 @@ with tab_zones:
             else:
                 reach = "40+ countries"
         else:
-            # rough idea: number of saved zones = reach hint
             count = len(st.session_state.custom_zones)
             reach = f"{count} custom zone(s)" if count > 0 else "Custom (not yet saved)"
 
@@ -125,7 +127,6 @@ with tab_zones:
 
         if st.session_state.custom_zones:
             with st.expander("Saved custom zones (click to view/edit/delete)"):
-                # We’ll track which indexes to delete after the loop
                 indexes_to_delete = []
                 for idx, z in enumerate(st.session_state.custom_zones):
                     st.markdown(f"**Zone {idx + 1}**")
@@ -139,7 +140,6 @@ with tab_zones:
                         value=z["query"],
                         key=f"zone_query_{idx}",
                     )
-                    # Update stored values with edits
                     st.session_state.custom_zones[idx]["name"] = new_name
                     st.session_state.custom_zones[idx]["query"] = new_query
 
@@ -148,7 +148,6 @@ with tab_zones:
 
                     st.markdown("---")
 
-                # Perform deletions (from last index to first so we don't mess up indices)
                 for i in sorted(indexes_to_delete, reverse=True):
                     del st.session_state.custom_zones[i]
                 if indexes_to_delete:
@@ -181,6 +180,48 @@ with tab_rates:
 
         if view == "By transit time":
             st.markdown("#### By transit time")
+
+            # Visual size picker
+            st.markdown("##### Visual size picker")
+            c_small, c_med, c_large = st.columns(3)
+
+            with c_small:
+                if st.button("Small\nFits in a mailbox", key="size_small"):
+                    st.session_state.flat_size_category = "Small"
+                st.caption("Examples: envelopes, accessories.")
+
+            with c_med:
+                if st.button("Medium\nFits in a car trunk", key="size_medium"):
+                    st.session_state.flat_size_category = "Medium"
+                st.caption("Examples: shoebox‑size parcels.")
+
+            with c_large:
+                if st.button("Large\nRequires a truck", key="size_large"):
+                    st.session_state.flat_size_category = "Large"
+                st.caption("Examples: furniture, large equipment.")
+
+            st.markdown(
+                f"Currently selected size: **{st.session_state.flat_size_category}**"
+            )
+
+            # Recommendation text based on selected size
+            if st.session_state.flat_size_category == "Small":
+                st.info(
+                    "Recommendation: Similar merchants often choose compact boxes (e.g., 12 x 9 x 2 in) "
+                    "to keep small items affordable to ship."
+                )
+            elif st.session_state.flat_size_category == "Medium":
+                st.info(
+                    "Recommendation: Similar merchants often use shoebox‑style cartons "
+                    "(around 16 x 12 x 3 in) for typical e‑commerce orders."
+                )
+            else:
+                st.info(
+                    "Recommendation: For large items, similar merchants often rely on oversized packaging "
+                    "and higher flat rates to avoid losing money on freight‑like shipments."
+                )
+
+            st.markdown("##### Set flat rates by speed")
             col_a, col_b, col_c = st.columns(3)
             with col_a:
                 express = st.number_input("Express (1–2 days)", min_value=0.0, value=20.0)
@@ -287,7 +328,6 @@ with tab_packaging:
             with c4:
                 weight = st.number_input("Box weight (lb)", min_value=0.0, value=10.0)
 
-            # Simple oversize rule (not exact freight logic, just a warning)
             if length + width + height > 108:
                 st.warning("This may require freight shipping.")
 
@@ -348,16 +388,15 @@ with tab_done:
 
         mock_city = st.text_input("Mock city", placeholder="e.g., Toronto, New York, London")
 
-        # Very simple mock logic: if city name looks like "domestic" vs "international"
         city_lower = mock_city.lower()
         if city_lower.strip() == "":
             shipping = 10.0 if st.session_state.rate_strategy == "Flat rate" else 12.34
         elif any(c in city_lower for c in ["toronto", "montreal", "vancouver", "ottawa"]):
-            shipping = 8.0  # domestic Canada – cheaper
+            shipping = 8.0
         elif any(c in city_lower for c in ["new york", "la", "los angeles", "chicago", "seattle"]):
-            shipping = 10.0  # North American zone
+            shipping = 10.0
         else:
-            shipping = 18.0  # treat as international / global explorer
+            shipping = 18.0
 
     with right:
         st.markdown("#### Customer receipt")
@@ -366,6 +405,18 @@ with tab_done:
         st.write(f"Handling fee: ${st.session_state.handling_fee:.2f}")
         total = base_price + shipping + st.session_state.handling_fee
         st.markdown(f"**Total: ${total:.2f}**")
+
+        # Profit warning: Large item but low flat shipping
+        if (
+            st.session_state.rate_strategy == "Flat rate"
+            and st.session_state.flat_size_category == "Large"
+            and shipping <= 20
+        ):
+            st.error(
+                "Profit warning: You've categorized this as a **Large** item in Rates, "
+                "but your current flat rate looks too low to cover actual costs (e.g., ~$150). "
+                "You may want to increase your shipping price or adjust the size."
+            )
 
     st.divider()
     if st.button("Activate shipping", type="primary"):
