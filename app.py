@@ -44,19 +44,16 @@ with tab_zones:
                 st.markdown("**Domestic Hero**")
                 st.caption("Ship only within your main country.")
                 st.markdown("Profit grade: **A**")
-                st.caption("Good for low‑risk, domestic‑only shipping with simple setup.")
 
             with c2:
                 st.markdown("**North American Expansion**")
                 st.caption("US + Canada with sensible defaults.")
                 st.markdown("Profit grade: **B**")
-                st.caption("Balances reach with margin across US and Canada.")
 
             with c3:
                 st.markdown("**Global Explorer**")
                 st.caption("Sell worldwide with protective margins.")
                 st.markdown("Profit grade: **B−**")
-                st.caption("Maximizes reach but requires careful rate tuning.")
 
             preset = st.selectbox(
                 "Select a preset to preview",
@@ -96,6 +93,13 @@ with tab_zones:
             reach = "Custom"
 
         st.metric("Potential reach", reach)
+
+        with st.expander("What does profit grade mean?"):
+            st.write(
+                "- **Domestic Hero (A)** – Focused on your primary country with strong margin protection.\n"
+                "- **North American Expansion (B)** – Balanced reach across US and Canada with healthy margins.\n"
+                "- **Global Explorer (B−)** – Maximum reach worldwide with protective but tighter margin assumptions."
+            )
 
     st.divider()
     st.button("Save & continue to Rates", type="primary", key="zones_continue")
@@ -200,14 +204,15 @@ with tab_packaging:
             dims_match = re.search(r"\(([\dx\s]+in)\)", option)
             dims_text = dims_match.group(1) if dims_match else "N/A"
 
-            # Try to extract numeric L x W x H for labels
             dims_numbers = re.findall(r"(\d+)", dims_text)
             if len(dims_numbers) >= 3:
                 L, W, H = dims_numbers[0], dims_numbers[1], dims_numbers[2]
             else:
                 L, W, H = "L", "W", "H"
 
-            st.markdown("##### Box dimensions schematic (mock)")
+            st.markdown("##### Box dimensions guidance")
+            # If you add a real image file named 'box_dimensions.png' in the repo, uncomment the next line:
+            # st.image("box_dimensions.png", caption="Example box showing length, width, and height.")
             st.markdown(
                 f"""
                 - Length: **{L} in**  
@@ -215,7 +220,7 @@ with tab_packaging:
                 - Height: **{H} in**  
                 """
             )
-            st.caption("In a full build, this schematic would be a 3D visual preview tied to these dimensions.")
+            st.caption("Visual guidance: merchants see how each dimension maps onto the box they select.")
 
         else:
             st.markdown("#### Custom / oversized packaging")
