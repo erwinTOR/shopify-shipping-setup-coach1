@@ -9,6 +9,10 @@ if "rate_strategy" not in st.session_state:
     st.session_state.rate_strategy = "Flat rate"
 if "handling_fee" not in st.session_state:
     st.session_state.handling_fee = 0.0
+if "zone_mode" not in st.session_state:
+    st.session_state.zone_mode = "Use Smart Presets"
+if "zone_preset" not in st.session_state:
+    st.session_state.zone_preset = "Domestic Hero"
 
 # ----- TABS -----
 tab_zones, tab_rates, tab_packaging, tab_special, tab_done = st.tabs(
@@ -29,6 +33,7 @@ with tab_zones:
             horizontal=True,
             label_visibility="collapsed",
         )
+        st.session_state.zone_mode = choice
 
         if choice == "Use Smart Presets":
             st.markdown("#### Smart Presets")
@@ -53,6 +58,7 @@ with tab_zones:
                 "Select a preset to preview",
                 ["Domestic Hero", "North American Expansion", "Global Explorer"],
             )
+            st.session_state.zone_preset = preset
 
         else:
             st.markdown("#### Build Custom Zones")
@@ -74,9 +80,23 @@ with tab_zones:
         st.markdown("### Live feedback")
         st.caption("Updates as you configure zones.")
 
-        # Very simple fake numbers, just for demo
-        st.metric("Potential reach", "12 countries")
-        st.metric("Avg. order value", "$65")
+        # Simple fake numbers, just for demo
+        if st.session_state.zone_mode == "Use Smart Presets":
+            if st.session_state.zone_preset == "Domestic Hero":
+                reach = "1 country"
+                aov = "$55"
+            elif st.session_state.zone_preset == "North American Expansion":
+                reach = "2 countries"
+                aov = "$65"
+            else:
+                reach = "40+ countries"
+                aov = "$70"
+        else:
+            reach = "Custom"
+            aov = "$60"
+
+        st.metric("Potential reach", reach)
+        st.metric("Avg. order value", aov)
         st.metric("Net profit estimate", "Healthy")
 
     st.divider()
@@ -134,57 +154,92 @@ with tab_rates:
         st.selectbox("Preferred carrier", ["UPS", "FedEx", "USPS"])
 
     st.divider()
-    st.button("Save & continue to Packaging", type="primary", key="rates_continue")
+    st.button("Save & continue to Special Features", type="primary", key="rates_continue")
 
 # ===================== PACKAGING & DIMENSIONS =====================
 with tab_packaging:
     st.subheader("Packaging & Dimensions")
 
-    if st.session_state.rate_strategy == "Flat rate":
-        st.caption("Optional: For simple flat-rate setups, you can skip detailed packaging for now.")
+    # Only show the full packaging setup if Carrier‑calculated is chosen
+    if st.session_state.rate_strategy != "Carrier‑calculated":
+        st.info(
+            "For simple flat-rate setups, detailed packaging is optional. "
+            "This step becomes more important once you use carrier‑calculated rates."
+        )
+    else:
+        st.caption("Required when using carrier‑calculated rates to avoid surprises at checkout.")
 
-    mode = st.radio(
-        "Packaging type",
-        ["Carrier packaging", "Custom / oversized"],
-        horizontal=True,
-    )
+        mode = st.radio(
+            "Packaging type",
+            ["Carrier packaging", "Custom / oversized"],
+            horizontal=True,
+        )
 
-    if mode == "Carrier packaging":
-        st.markdown("#### Carrier packaging")
-        option = st.selectbox(
-            "Choose a carrier box",
-            [
+        if mode == "Carrier packaging":
+            st.markdown("#### Carrier packaging")
+
+            # Extended list of mock carrier boxes
+            box_options = [
                 "UPS – Small Box (12 x 9 x 2 in)",
                 "UPS – Medium Box (16 x 12 x 3 in)",
-                "FedEx – Envelope",
-                "FedEx – Tube",
-                "USPS – Flat Rate Box (Medium)"
-            ],
-        )
-        st.markdown(f"**Box preview:** {option}")
-        st.info("Recommendation: Merchants with similar products often choose this packaging option.")
+                "UPS – Large Box (18 x 18 x 8 in)",
+                "FedEx – Pak (13 x 11 x 2 in) – Recommended for your product",
+                "FedEx – Large Box (17 x 13 x 3 in)",
+                "FedEx – Tube (38 x 6 x 6 in)",
+                "USPS – Flat Rate Box (Medium, 14 x 12 x 3 in)",
+                "USPS – Flat Rate Box (Large, 24 x 12 x 6 in)",
+            ]
 
-    else:
-        st.markdown("#### Custom / oversized packaging")
-        c1, c2, c3, c4 = st.columns(4)
-        with c1:
-            length = st.number_input("Length (in)", min_value=0.0, value=40.0)
-        with c2:
-            width = st.number_input("Width (in)", min_value=0.0, value=20.0)
-        with c3:
-            height = st.number_input("Height (in)", min_value=0.0, value=20.0)
-        with c4:
-            weight = st.number_input("Box weight (lb)", min_value=0.0, value=10.0)
+            option = st.selectbox(
+                "Choose a carrier box",
+                box_options,
+            )
 
-        # Simple oversize rule (not exact freight logic, just a warning)
-        if length + width + height > 108:
-            st.warning("This may require freight shipping.")
+            st.markdown(f"**Box preview:** {option}")
 
-        st.toggle("Freight / large item", value=False)
+            # Highlight a subtle recommendation based on the option text
+            if "Recommended for your product" in option:
+                st.success("Recommended for your product")
+
+            # Very simple parse of dimensions from the string (for display only)
+            import re
+
+            dims_match = re.search(r"\(([\dx\s]+in)\)", option)
+            dims_text = dims_match.group(1) if dims_match else "N/A"
+
+            st.markdown("##### 3D‑style box illustration (mock)")
+            st.text(
+                "        +-----------+\n"
+                "       /           /|\n"
+                "      /           / |\n"
+                "     +-----------+  |\n"
+                "     |           |  |\n"
+                "     |           |  +\n"
+                "     |           | /\n"
+                "     +-----------+/\n"
+            )
+            st.caption(f"Dimensions: {dims_text} (length × width × height, not to scale).")
+
+        else:
+            st.markdown("#### Custom / oversized packaging")
+            c1, c2, c3, c4 = st.columns(4)
+            with c1:
+                length = st.number_input("Length (in)", min_value=0.0, value=40.0)
+            with c2:
+                width = st.number_input("Width (in)", min_value=0.0, value=20.0)
+            with c3:
+                height = st.number_input("Height (in)", min_value=0.0, value=20.0)
+            with c4:
+                weight = st.number_input("Box weight (lb)", min_value=0.0, value=10.0)
+
+            # Simple oversize rule (not exact freight logic, just a warning)
+            if length + width + height > 108:
+                st.warning("This may require freight shipping.")
+
+            st.toggle("Freight / large item", value=False)
 
     st.divider()
-    st.button("Save & test rates", type="primary", key="packaging_continue")
-    st.button("I'll do this later", key="packaging_later")
+    st.button("Save & continue to Special Features", type="primary", key="packaging_continue")
 
 # ===================== SPECIAL FEATURES =====================
 with tab_special:
@@ -212,7 +267,7 @@ with tab_special:
         st.caption("Customers can opt in to added protection during checkout.")
 
     st.divider()
-    st.button("Save & continue to Confirmation", type="primary", key="special_continue")
+    st.button("Save & continue to Completion", type="primary", key="special_continue")
 
 # ===================== COMPLETION =====================
 with tab_done:
@@ -236,16 +291,24 @@ with tab_done:
         )
         base_price = 200.0 if "Chair" in product else 40.0
 
-        # Super simple "rate" just for demo
-        if st.session_state.rate_strategy == "Flat rate":
-            shipping = 10.0
+        mock_city = st.text_input("Mock city", placeholder="e.g., Toronto, New York, London")
+
+        # Very simple mock logic: if city name looks like "domestic" vs "international"
+        # In your demo you can say: this would actually use the zones from Tab 1.
+        city_lower = mock_city.lower()
+        if city_lower.strip() == "":
+            shipping = 10.0 if st.session_state.rate_strategy == "Flat rate" else 12.34
+        elif any(c in city_lower for c in ["toronto", "montreal", "vancouver", "ottawa"]):
+            shipping = 8.0  # domestic Canada – cheaper
+        elif any(c in city_lower for c in ["new york", "la", "los angeles", "chicago", "seattle"]):
+            shipping = 10.0  # North American zone
         else:
-            shipping = 12.34
+            shipping = 18.0  # treat as international / global explorer
 
     with right:
         st.markdown("#### Customer receipt")
         st.write(f"Product: ${base_price:.2f}")
-        st.write(f"Shipping: ${shipping:.2f}")
+        st.write(f"Shipping ({mock_city or 'default'}): ${shipping:.2f}")
         st.write(f"Handling fee: ${st.session_state.handling_fee:.2f}")
         total = base_price + shipping + st.session_state.handling_fee
         st.markdown(f"**Total: ${total:.2f}**")
