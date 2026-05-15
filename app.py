@@ -124,7 +124,9 @@ with tab_zones:
             )
 
         if st.session_state.custom_zones:
-            with st.expander("Saved custom zones (click to view/edit)"):
+            with st.expander("Saved custom zones (click to view/edit/delete)"):
+                # We’ll track which indexes to delete after the loop
+                indexes_to_delete = []
                 for idx, z in enumerate(st.session_state.custom_zones):
                     st.markdown(f"**Zone {idx + 1}**")
                     new_name = st.text_input(
@@ -137,10 +139,20 @@ with tab_zones:
                         value=z["query"],
                         key=f"zone_query_{idx}",
                     )
-                    # Update the stored values with edits
+                    # Update stored values with edits
                     st.session_state.custom_zones[idx]["name"] = new_name
                     st.session_state.custom_zones[idx]["query"] = new_query
+
+                    if st.button(f"Delete zone {idx + 1}", key=f"delete_zone_{idx}"):
+                        indexes_to_delete.append(idx)
+
                     st.markdown("---")
+
+                # Perform deletions (from last index to first so we don't mess up indices)
+                for i in sorted(indexes_to_delete, reverse=True):
+                    del st.session_state.custom_zones[i]
+                if indexes_to_delete:
+                    st.success("Selected zone(s) deleted.")
 
     st.divider()
     st.button("Save & continue to Rates", type="primary", key="zones_continue")
