@@ -14,6 +14,9 @@ if "zone_mode" not in st.session_state:
     st.session_state.zone_mode = "Use Smart Presets"
 if "zone_preset" not in st.session_state:
     st.session_state.zone_preset = "Domestic Hero"
+if "custom_zones" not in st.session_state:
+    # list of dicts: {"name": ..., "query": ...}
+    st.session_state.custom_zones = []
 
 # ----- TABS -----
 tab_zones, tab_rates, tab_packaging, tab_special, tab_done = st.tabs(
@@ -66,9 +69,26 @@ with tab_zones:
             query = st.text_input(
                 "Search regions, countries, or zones (e.g. “Europe”)",
                 placeholder="Type “Europe”, “US West”, “Asia Pacific”…",
+                key="custom_zone_query",
             )
+
+            zone_name = st.text_input(
+                "Name this zone (e.g. 'EU Core', 'US West')",
+                placeholder="Give your custom zone a name",
+                key="custom_zone_name",
+            )
+
+            if st.button("Save custom zone", type="primary"):
+                if zone_name and query:
+                    st.session_state.custom_zones.append(
+                        {"name": zone_name, "query": query}
+                    )
+                    st.success(f"Saved zone: {zone_name}")
+                else:
+                    st.warning("Please enter both a zone name and at least one region/country before saving.")
+
             if query:
-                st.markdown(f"Selected zone tag: `{query}`")
+                st.markdown(f"Current selection (not yet saved): `{query}`")
 
             optimize_profit = st.toggle(
                 "Optimize for profit (exclude high‑cost remote areas)",
@@ -90,7 +110,9 @@ with tab_zones:
             else:
                 reach = "40+ countries"
         else:
-            reach = "Custom"
+            # rough idea: number of saved zones = reach hint
+            count = len(st.session_state.custom_zones)
+            reach = f"{count} custom zone(s)" if count > 0 else "Custom (not yet saved)"
 
         st.metric("Potential reach", reach)
 
@@ -100,6 +122,25 @@ with tab_zones:
                 "- **North American Expansion (B)** – Balanced reach across US and Canada with healthy margins.\n"
                 "- **Global Explorer (B−)** – Maximum reach worldwide with protective but tighter margin assumptions."
             )
+
+        if st.session_state.custom_zones:
+            with st.expander("Saved custom zones (click to view/edit)"):
+                for idx, z in enumerate(st.session_state.custom_zones):
+                    st.markdown(f"**Zone {idx + 1}**")
+                    new_name = st.text_input(
+                        f"Name for zone {idx + 1}",
+                        value=z["name"],
+                        key=f"zone_name_{idx}",
+                    )
+                    new_query = st.text_input(
+                        f"Regions/countries for zone {idx + 1}",
+                        value=z["query"],
+                        key=f"zone_query_{idx}",
+                    )
+                    # Update the stored values with edits
+                    st.session_state.custom_zones[idx]["name"] = new_name
+                    st.session_state.custom_zones[idx]["query"] = new_query
+                    st.markdown("---")
 
     st.divider()
     st.button("Save & continue to Rates", type="primary", key="zones_continue")
