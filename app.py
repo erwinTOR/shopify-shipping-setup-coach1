@@ -1,7 +1,7 @@
 import streamlit as st
 
-st.set_page_config(page_title="Shipping Setup Coach", layout="wide")
-st.title("Shipping Setup Coach")
+st.set_page_config(page_title="Take Home Assignment - APM", layout="wide")
+st.title("Take Home Assignment - APM")
 st.caption("Prototype: Zones → Rates → Packaging → Special Features → Completion")
 
 # ----- SESSION STATE (to share data across tabs) -----
@@ -15,9 +15,9 @@ tab_zones, tab_rates, tab_packaging, tab_special, tab_done = st.tabs(
     ["Zones", "Rates", "Packaging & Dimensions", "Special Features", "Completion"]
 )
 
-# ===================== TAB 1: ZONES =====================
+# ===================== ZONES =====================
 with tab_zones:
-    st.subheader("Tab 1: Zones")
+    st.subheader("Zones")
 
     left, right = st.columns([2, 1])
 
@@ -82,74 +82,66 @@ with tab_zones:
     st.divider()
     st.button("Save & continue to Rates", type="primary", key="zones_continue")
 
-# ===================== TAB 2: RATES =====================
+# ===================== RATES =====================
 with tab_rates:
-    st.subheader("Tab 2: Rate strategy")
+    st.subheader("Rates")
 
-    col1, col2 = st.columns(2)
+    st.markdown("### Choose your main rate strategy")
 
-    with col1:
-        st.markdown("### Choose your main rate strategy")
+    strategy = st.radio(
+        "Rate strategy",
+        ["Flat rate", "Carrier‑calculated"],
+        horizontal=True,
+    )
+    st.session_state.rate_strategy = strategy
 
-        strategy = st.radio(
-            "Rate strategy",
-            ["Flat rate", "Carrier‑calculated"],
+    if strategy == "Flat rate":
+        st.info("Flat rate: You set fixed prices customers pay at checkout.")
+
+        view = st.radio(
+            "How do you want to structure your flat rates?",
+            ["By transit time", "By price", "By weight"],
             horizontal=True,
         )
-        st.session_state.rate_strategy = strategy
 
-        if strategy == "Flat rate":
-            st.info("Flat rate: You set fixed prices customers pay at checkout.")
-        else:
-            st.info("Carrier‑calculated: Real‑time rates from carriers like UPS and FedEx (simulated here).")
+        if view == "By transit time":
+            st.markdown("#### By transit time")
+            col_a, col_b, col_c = st.columns(3)
+            with col_a:
+                express = st.number_input("Express (1–2 days)", min_value=0.0, value=20.0)
+            with col_b:
+                economy = st.number_input("Economy (5–7 days)", min_value=0.0, value=10.0)
+            with col_c:
+                value = st.number_input("Value (7–14 days)", min_value=0.0, value=6.0)
 
-        if strategy == "Flat rate":
-            view = st.radio(
-                "How do you want to structure your flat rates?",
-                ["By transit time", "By price", "By weight"],
-                horizontal=True,
-            )
-
-            if view == "By transit time":
-                st.markdown("#### By transit time")
-                col_a, col_b, col_c = st.columns(3)
-                with col_a:
-                    express = st.number_input("Express (1–2 days)", min_value=0.0, value=20.0)
-                with col_b:
-                    economy = st.number_input("Economy (5–7 days)", min_value=0.0, value=10.0)
-                with col_c:
-                    value = st.number_input("Value (7–14 days)", min_value=0.0, value=6.0)
-
-            elif view == "By price":
-                st.markdown("#### By cart price")
-                threshold = st.number_input("If cart price is over…", min_value=0.0, value=75.0)
-                charge = st.number_input("…then charge this shipping price", min_value=0.0, value=0.0)
-                st.caption("Example: Free shipping over $75, flat rate below that.")
-
-            else:
-                st.markdown("#### By weight")
-                weight_limit = st.number_input("If total weight (kg) is over…", min_value=0.0, value=5.0)
-                charge_weight = st.number_input("…then charge this shipping price", min_value=0.0, value=25.0)
+        elif view == "By price":
+            st.markdown("#### By cart price")
+            threshold = st.number_input("If cart price is over…", min_value=0.0, value=75.0)
+            charge = st.number_input("…then charge this shipping price", min_value=0.0, value=0.0)
+            st.caption("Example: Free shipping over $75, flat rate below that.")
 
         else:
-            st.markdown("#### Carrier‑calculated (placeholder)")
-            st.caption("In a real build, this is where merchants connect UPS/FedEx accounts.")
-            st.selectbox("Preferred carrier", ["UPS", "FedEx", "USPS"])
+            st.markdown("#### By weight")
+            weight_limit = st.number_input("If total weight (kg) is over…", min_value=0.0, value=5.0)
+            charge_weight = st.number_input("…then charge this shipping price", min_value=0.0, value=25.0)
 
-    with col2:
-        st.markdown("### What a customer might see")
-        st.write("This is a rough preview of the checkout experience.")
-        if st.session_state.rate_strategy == "Flat rate":
-            st.markdown("**Example:** Customer in Ontario with a $60 cart sees `Economy shipping – $10`.")
-        else:
-            st.markdown("**Example:** Customer in Ontario with a $60 cart sees `UPS Ground – $12.34` (real‑time).")
+        st.caption("With Flat rate, Packaging & Dimensions becomes optional for a simple setup.")
+
+    else:
+        st.info("Carrier‑calculated: Real‑time rates from carriers like UPS and FedEx (simulated here).")
+        st.markdown("#### Carrier‑calculated (placeholder)")
+        st.caption("In a real build, this is where merchants connect UPS/FedEx accounts.")
+        st.selectbox("Preferred carrier", ["UPS", "FedEx", "USPS"])
 
     st.divider()
     st.button("Save & continue to Packaging", type="primary", key="rates_continue")
 
-# ===================== TAB 3: PACKAGING =====================
+# ===================== PACKAGING & DIMENSIONS =====================
 with tab_packaging:
-    st.subheader("Tab 3: Packaging & dimensions")
+    st.subheader("Packaging & Dimensions")
+
+    if st.session_state.rate_strategy == "Flat rate":
+        st.caption("Optional: For simple flat-rate setups, you can skip detailed packaging for now.")
 
     mode = st.radio(
         "Packaging type",
@@ -194,9 +186,9 @@ with tab_packaging:
     st.button("Save & test rates", type="primary", key="packaging_continue")
     st.button("I'll do this later", key="packaging_later")
 
-# ===================== TAB 4: SPECIAL FEATURES =====================
+# ===================== SPECIAL FEATURES =====================
 with tab_special:
-    st.subheader("Tab 4: Special features")
+    st.subheader("Special Features")
 
     st.markdown("#### Local pickup")
     lp = st.toggle("Allow customers to pick up orders in person")
@@ -222,9 +214,9 @@ with tab_special:
     st.divider()
     st.button("Save & continue to Confirmation", type="primary", key="special_continue")
 
-# ===================== TAB 5: COMPLETION =====================
+# ===================== COMPLETION =====================
 with tab_done:
-    st.subheader("Tab 5: Confirmation")
+    st.subheader("Completion")
 
     st.warning(
         "Using tentative metrics? Make sure you return to add exact weights later to protect your profit margins."
